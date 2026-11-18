@@ -1,59 +1,237 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 📰 Berita API + Frontend (Laravel)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi sederhana untuk **menginput, melihat, mengedit, dan menghapus berita** —
+tersedia lewat **halaman web** (mudah dipakai) dan **REST API** (untuk integrasi).
 
-## About Laravel
+- **Backend**: Laravel 10/11
+- **Frontend**: Blade + Bootstrap 5 (tanpa npm)
+- **Database**: MySQL (atau SQLite)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✅ Prasyarat
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Pastikan sudah terpasang:
 
-## Learning Laravel
+| Tools     | Versi minimal |
+|-----------|---------------|
+| PHP       | 8.1+          |
+| Composer  | 2.x           |
+| MySQL     | 5.7+ / 8.x    |
+| Git       | (opsional)    |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🚀 Instalasi (Langkah Cepat)
 
-## Laravel Sponsors
+```bash
+# 1. Masuk folder project
+cd berita-api
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 2. Install dependency
+composer install
 
-### Premium Partners
+# 3. Copy file environment
+cp .env.example .env
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 4. Generate app key
+php artisan key:generate
+```
 
-## Contributing
+### Konfigurasi Database
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Edit file `.env`, sesuaikan bagian ini:
 
-## Code of Conduct
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=berita_api
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+> Buat dulu database `berita_api` di MySQL/phpMyAdmin.
 
-## Security Vulnerabilities
+### Migrasi & (Opsional) Seed
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+# Buat tabel
+php artisan migrate
 
-## License
+# (Opsional) isi 5 data contoh
+php artisan db:seed --class=BeritaSeeder
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Jalankan Server
+
+```bash
+php artisan serve
+```
+
+Buka browser:
+
+👉 **http://127.0.0.1:8000/berita**
+
+---
+
+## 🖥️ Cara Pakai Halaman Web
+
+Halaman utama: `/berita`
+
+### 1. Tambah **satu** berita
+
+1. Pada tab **"Satu Berita"**
+2. Tulis berita di textarea
+3. Isi **Kategori** & **Sumber** (opsional)
+4. Klik **Simpan** ✅
+
+### 2. Tambah **banyak** berita sekaligus
+
+1. Pindah ke tab **"Banyak (Multi-baris)"**
+2. Tempel teks — **1 baris = 1 berita**
+
+   Contoh:
+   ```
+   Kepadatan kendaraan terjadi di Tol Dalam Kota arah Semanggi pagi ini.
+   BMKG mengingatkan potensi hujan disertai angin kencang di Jabodetabek.
+   Harga cabai rawit merah di pasar tradisional Jakarta naik tipis.
+   ```
+3. Isi Kategori & Sumber (opsional)
+4. Klik **Simpan Semua** ✅
+5. Muncul notifikasi: **"3 berita tersimpan"**
+
+### 3. Lihat & cari berita
+
+- Semua berita tampil di tabel
+- **Cari konten** → ketik di kolom "Cari konten..."
+- **Filter kategori** → ketik di kolom "Kategori"
+- Klik **Reset** untuk bersihkan filter
+- Klik **Muat Ulang** untuk refresh manual
+
+### 4. Edit berita
+
+1. Klik ikon ✏️ pada baris yang ingin diubah
+2. Modal edit terbuka
+3. Ubah teks → klik **Simpan Perubahan** ✅
+
+### 5. Hapus berita
+
+1. Klik ikon 🗑️ pada baris
+2. Konfirmasi → data terhapus ✅
+
+---
+
+## 🔌 Cara Pakai API (untuk Developer)
+
+Base URL: `http://127.0.0.1:8000/api`
+
+### Daftar Endpoint
+
+| Method | Endpoint               | Fungsi                          |
+|--------|------------------------|---------------------------------|
+| GET    | `/beritas`             | List semua berita (array objek) |
+| GET    | `/beritas?simple=true` | List (array string saja)        |
+| GET    | `/beritas?q=hujan`     | Cari konten                     |
+| GET    | `/beritas?kategori=x`  | Filter kategori                 |
+| GET    | `/beritas/{id}`        | Detail 1 berita                 |
+| POST   | `/beritas`             | Buat 1 berita                   |
+| POST   | `/beritas/bulk`        | Buat banyak (multi-baris)       |
+| PUT    | `/beritas/{id}`        | Update berita                   |
+| DELETE | `/beritas/{id}`        | Hapus berita                    |
+
+### Contoh cURL
+
+**Tambah satu berita:**
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/beritas \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"konten":"Berita pertama.","kategori":"jakarta"}'
+```
+
+**Tambah banyak sekaligus:**
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/beritas/bulk \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"teks":"Baris satu.\nBaris dua.\nBaris tiga."}'
+```
+
+**Ambil semua berita (array):**
+
+```bash
+curl -H "Accept: application/json" http://127.0.0.1:8000/api/beritas
+```
+
+**Ambil hanya teks (array string):**
+
+```bash
+curl -H "Accept: application/json" "http://127.0.0.1:8000/api/beritas?simple=true"
+```
+
+**Update:**
+
+```bash
+curl -X PUT http://127.0.0.1:8000/api/beritas/1 \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"konten":"Teks baru."}'
+```
+
+**Hapus:**
+
+```bash
+curl -X DELETE http://127.0.0.1:8000/api/beritas/1 \
+  -H "Accept: application/json"
+```
+
+---
+
+## 📂 Struktur Penting
+
+```
+app/
+├── Http/
+│   ├── Controllers/Api/BeritaController.php   ← logika CRUD
+│   ├── Requests/                               ← validasi
+│   └── Resources/BeritaResource.php            ← format response
+└── Models/Berita.php                           ← model
+
+database/migrations/*_create_beritas_table.php   ← skema tabel
+
+routes/
+├── api.php    ← endpoint /api/beritas
+└── web.php    ← halaman /berita
+
+resources/views/berita/index.blade.php          ← tampilan frontend
+```
+
+---
+
+## 🧪 Menjalankan Test (opsional)
+
+```bash
+php artisan test
+```
+
+---
+
+## ❗ Troubleshooting
+
+| Masalah | Solusi |
+|---------|--------|
+| `419 Page Expired` | Pastikan pakai header `X-CSRF-TOKEN` (sudah otomatis di frontend) |
+| `SQLSTATE[HY000] [1049]` | Database `berita_api` belum dibuat |
+| Halaman kosong / API error | Cek `storage/logs/laravel.log`, jalankan `php artisan config:clear` |
+| Perubahan `.env` tidak terbaca | `php artisan config:clear && php artisan cache:clear` |
+| Tabel belum ada | `php artisan migrate` |
+| Route `/api/*` 404 | Jalankan `php artisan install:api` (Laravel 11) |
+
+---
+
+## 📝 Lisensi
+
+Bebas dipakai untuk keperluan belajar & internal.

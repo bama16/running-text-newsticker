@@ -13,11 +13,92 @@
         .table td, .table th { vertical-align: middle; }
         .konten-cell { max-width: 480px; white-space: normal; }
         .toast-container { z-index: 1090; }
+        .endpoint-btn { font-size: .8rem; }
+        .endpoint-btn code { font-size: .75rem; color: inherit; }
+        .config-panel { background: linear-gradient(135deg,#eef3ff,#f8fbff); }
     </style>
 </head>
 <body>
 <div class="container py-4">
 
+    {{-- ===== PANEL KONFIGURASI URL & PORT ===== --}}
+    <div class="card mb-4 config-panel">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-gear"></i> Konfigurasi API Endpoint
+        </div>
+        <div class="card-body">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-5">
+                    <label class="form-label mb-1 small text-muted">Base URL</label>
+                    <input type="text" id="cfgBaseUrl" class="form-control form-control-sm"
+                           placeholder="http://127.0.0.1" value="http://127.0.0.1">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small text-muted">Port</label>
+                    <input type="number" id="cfgPort" class="form-control form-control-sm"
+                           placeholder="8000" value="8000" min="1" max="65535">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1 small text-muted">Prefix API</label>
+                    <input type="text" id="cfgPrefix" class="form-control form-control-sm"
+                           placeholder="/api/beritas" value="/api/beritas">
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button class="btn btn-primary btn-sm w-100" id="btnApplyCfg">
+                        <i class="bi bi-check2-circle"></i> Terapkan
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" id="btnResetCfg" title="Reset ke default">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <span class="small text-muted">Preview endpoint:</span>
+                <code id="previewEndpoint" class="ms-1">http://127.0.0.1:8000/api/beritas</code>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="mb-2 fw-semibold small text-uppercase text-secondary">
+                <i class="bi bi-link-45deg"></i> Buka Endpoint GET
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button class="btn btn-outline-primary btn-sm endpoint-btn" data-open="/" title="GET semua berita (array objek)">
+                    <i class="bi bi-box-arrow-up-right"></i> GET <code>/beritas</code>
+                </button>
+                <button class="btn btn-outline-primary btn-sm endpoint-btn" data-open="/?simple=true" title="GET array string saja">
+                    <i class="bi bi-box-arrow-up-right"></i> GET <code>/beritas?simple=true</code>
+                </button>
+                <button class="btn btn-outline-info btn-sm endpoint-btn" id="btnOpenSearch" title="GET dengan pencarian q">
+                    <i class="bi bi-search"></i> GET <code>/beritas?q=...</code>
+                </button>
+                <button class="btn btn-outline-info btn-sm endpoint-btn" id="btnOpenKategori" title="GET filter kategori">
+                    <i class="bi bi-funnel"></i> GET <code>/beritas?kategori=...</code>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm endpoint-btn" id="btnOpenDetail" title="GET detail by id">
+                    <i class="bi bi-file-earmark-text"></i> GET <code>/beritas/{id}</code>
+                </button>
+            </div>
+
+            <div class="mb-2 fw-semibold small text-uppercase text-secondary">
+                <i class="bi bi-lightning-charge"></i> Aksi Cepat
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-success btn-sm endpoint-btn" id="btnQuickBulk">
+                    <i class="bi bi-plus-square"></i> POST <code>/beritas/bulk</code> (contoh teks)
+                </button>
+                <button class="btn btn-warning btn-sm endpoint-btn" id="btnOpenSwaggerLike">
+                    <i class="bi bi-code-slash"></i> Lihat JSON mentah
+                </button>
+                <button class="btn btn-outline-dark btn-sm endpoint-btn" id="btnCopyEndpoint">
+                    <i class="bi bi-clipboard"></i> Salin Base Endpoint
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ===== HEADER ===== --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0"><i class="bi bi-newspaper"></i> Manajemen Berita</h3>
         <span class="badge bg-primary" id="totalBadge">0 berita</span>
@@ -43,7 +124,6 @@
             </ul>
 
             <div class="tab-content">
-                {{-- Single --}}
                 <div class="tab-pane fade show active" id="tabSingle">
                     <form id="formSingle">
                         <div class="mb-2">
@@ -64,7 +144,6 @@
                     </form>
                 </div>
 
-                {{-- Bulk --}}
                 <div class="tab-pane fade" id="tabBulk">
                     <form id="formBulk">
                         <div class="mb-2">
@@ -172,16 +251,157 @@ Harga cabai rawit merah di pasar tradisional Jakarta naik tipis." required></tex
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-/* ============ Konfigurasi ============ */
-const API = '/api/beritas';
+/* =====================================================
+   KONFIGURASI API DINAMIS (URL + PORT + PREFIX)
+   ===================================================== */
+const CFG_KEY = 'berita_api_cfg';
+const CFG_DEFAULT = {
+    baseUrl: window.location.origin.split(':').slice(0, 2).join(':') || 'http://127.0.0.1',
+    port: window.location.port || '8000',
+    prefix: '/api/beritas',
+};
+
+function loadCfg() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+        return saved ? { ...CFG_DEFAULT, ...saved } : { ...CFG_DEFAULT };
+    } catch { return { ...CFG_DEFAULT }; }
+}
+
+let CFG = loadCfg();
+
+function applyCfgToForm() {
+    document.getElementById('cfgBaseUrl').value = CFG.baseUrl;
+    document.getElementById('cfgPort').value = CFG.port;
+    document.getElementById('cfgPrefix').value = CFG.prefix;
+    updatePreview();
+}
+
+function updatePreview() {
+    document.getElementById('previewEndpoint').textContent = buildUrl();
+}
+
+/** Bangun full URL: BASE : PORT + PREFIX + path */
+function buildUrl(path = '') {
+    const base = (CFG.baseUrl || '').replace(/\/+$/, '');
+    const port = CFG.port ? `:${CFG.port}` : '';
+    const prefix = CFG.prefix.startsWith('/') ? CFG.prefix : '/' + CFG.prefix;
+    return `${base}${port}${prefix}${path}`;
+}
+
+document.getElementById('btnApplyCfg').addEventListener('click', () => {
+    CFG.baseUrl = document.getElementById('cfgBaseUrl').value.trim() || CFG_DEFAULT.baseUrl;
+    CFG.port = document.getElementById('cfgPort').value.trim();
+    CFG.prefix = document.getElementById('cfgPrefix').value.trim() || '/api/beritas';
+    localStorage.setItem(CFG_KEY, JSON.stringify(CFG));
+    updatePreview();
+    toast('Konfigurasi diterapkan');
+    loadBerita();
+});
+
+document.getElementById('btnResetCfg').addEventListener('click', () => {
+    CFG = { ...CFG_DEFAULT };
+    localStorage.removeItem(CFG_KEY);
+    applyCfgToForm();
+    toast('Konfigurasi direset');
+    loadBerita();
+});
+
+['cfgBaseUrl', 'cfgPort', 'cfgPrefix'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+        CFG.baseUrl = document.getElementById('cfgBaseUrl').value.trim();
+        CFG.port = document.getElementById('cfgPort').value.trim();
+        CFG.prefix = document.getElementById('cfgPrefix').value.trim();
+        updatePreview();
+    });
+});
+
+/* =====================================================
+   TOMBOL BUKA ENDPOINT GET & AKSI CEPAT
+   ===================================================== */
+// GET statis: /, /?simple=true
+document.querySelectorAll('[data-open]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        window.open(buildUrl(btn.dataset.open), '_blank');
+    });
+});
+
+// GET /beritas?q=...
+document.getElementById('btnOpenSearch').addEventListener('click', () => {
+    const q = prompt('Kata kunci pencarian (q):', 'hujan');
+    if (q === null) return;
+    const path = `/?q=${encodeURIComponent(q)}`;
+    window.open(buildUrl(path), '_blank');
+});
+
+// GET /beritas?kategori=...
+document.getElementById('btnOpenKategori').addEventListener('click', () => {
+    const k = prompt('Nama kategori:', 'jakarta');
+    if (k === null) return;
+    const path = `/?kategori=${encodeURIComponent(k)}`;
+    window.open(buildUrl(path), '_blank');
+});
+
+// GET /beritas/{id}
+document.getElementById('btnOpenDetail').addEventListener('click', () => {
+    const id = prompt('ID berita:', '1');
+    if (id === null || id.trim() === '') return;
+    window.open(buildUrl(`/${encodeURIComponent(id.trim())}`), '_blank');
+});
+
+// POST /beritas/bulk — kirim contoh teks (buka di tab baru lewat fetch, lalu tampilkan JSON)
+document.getElementById('btnQuickBulk').addEventListener('click', async () => {
+    const teks = "Contoh berita baris 1 dari tombol cepat.\nContoh berita baris 2 dari tombol cepat.\nContoh berita baris 3 dari tombol cepat.";
+    if (!confirm('Kirim 3 contoh berita ke endpoint POST /beritas/bulk?')) return;
+
+    try {
+        const res = await fetch(buildUrl('/bulk'), {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            body: JSON.stringify({ teks, kategori: 'contoh', sumber: 'quick-action' })
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+            toast(`${json.total} berita terkirim`);
+            loadBerita();
+        } else {
+            toast(json.message || 'Gagal kirim bulk', false);
+        }
+    } catch (e) {
+        toast('Gagal konek ke API', false);
+    }
+});
+
+// Lihat JSON mentah (tab baru)
+document.getElementById('btnOpenSwaggerLike').addEventListener('click', () => {
+    window.open(buildUrl('/?simple=false'), '_blank');
+});
+
+// Salin base endpoint ke clipboard
+document.getElementById('btnCopyEndpoint').addEventListener('click', async () => {
+    const url = buildUrl();
+    try {
+        await navigator.clipboard.writeText(url);
+        toast('Endpoint disalin: ' + url);
+    } catch {
+        toast('Gagal menyalin', false);
+    }
+});
+
+/* =====================================================
+   CRUD — pakai buildUrl() agar mengikuti konfigurasi
+   ===================================================== */
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
-const HEADERS_JSON = {
+const HEADERS_JSON = () => ({
     'Accept': 'application/json',
     'Content-Type': 'application/json',
     'X-CSRF-TOKEN': csrf,
-};
+});
 
-/* ============ Helper ============ */
 function toast(msg, ok = true) {
     const el = document.getElementById('toast');
     el.classList.toggle('bg-success', ok);
@@ -199,12 +419,10 @@ function escapeHtml(s) {
 
 function fmtTanggal(iso) {
     if (!iso) return '-';
-    return new Date(iso).toLocaleString('id-ID', {
-        dateStyle: 'medium', timeStyle: 'short'
-    });
+    return new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-/* ============ READ (list) ============ */
+/* ===== READ ===== */
 async function loadBerita() {
     const q = document.getElementById('filterQ').value.trim();
     const kategori = document.getElementById('filterKategori').value.trim();
@@ -213,7 +431,7 @@ async function loadBerita() {
     if (q) params.set('q', q);
     if (kategori) params.set('kategori', kategori);
 
-    const url = params.toString() ? `${API}?${params}` : API;
+    const url = buildUrl(params.toString() ? `/?${params}` : '/');
 
     const tbody = document.getElementById('tbodyBerita');
     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Memuat...</td></tr>';
@@ -248,7 +466,6 @@ async function loadBerita() {
             </tr>
         `).join('');
 
-        // Bind event edit & delete
         tbody.querySelectorAll('.btn-edit').forEach(btn =>
             btn.addEventListener('click', () => openEdit(btn.dataset.id, data)));
         tbody.querySelectorAll('.btn-delete').forEach(btn =>
@@ -259,7 +476,7 @@ async function loadBerita() {
     }
 }
 
-/* ============ CREATE — single ============ */
+/* ===== CREATE single ===== */
 document.getElementById('formSingle').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target;
@@ -270,8 +487,8 @@ document.getElementById('formSingle').addEventListener('submit', async (e) => {
     };
     if (!payload.konten) return toast('Konten wajib diisi', false);
 
-    const res = await fetch(API, {
-        method: 'POST', headers: HEADERS_JSON, body: JSON.stringify(payload)
+    const res = await fetch(buildUrl('/'), {
+        method: 'POST', headers: HEADERS_JSON(), body: JSON.stringify(payload)
     });
     const json = await res.json();
 
@@ -284,7 +501,7 @@ document.getElementById('formSingle').addEventListener('submit', async (e) => {
     }
 });
 
-/* ============ CREATE — bulk ============ */
+/* ===== CREATE bulk ===== */
 document.getElementById('formBulk').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target;
@@ -295,8 +512,8 @@ document.getElementById('formBulk').addEventListener('submit', async (e) => {
     };
     if (!payload.teks.trim()) return toast('Teks wajib diisi', false);
 
-    const res = await fetch(`${API}/bulk`, {
-        method: 'POST', headers: HEADERS_JSON, body: JSON.stringify(payload)
+    const res = await fetch(buildUrl('/bulk'), {
+        method: 'POST', headers: HEADERS_JSON(), body: JSON.stringify(payload)
     });
     const json = await res.json();
 
@@ -309,11 +526,8 @@ document.getElementById('formBulk').addEventListener('submit', async (e) => {
     }
 });
 
-/* ============ UPDATE ============ */
-let currentList = [];
-
+/* ===== UPDATE ===== */
 function openEdit(id, list) {
-    currentList = list;
     const b = list.find(x => String(x.id) === String(id));
     if (!b) return;
 
@@ -337,8 +551,8 @@ document.getElementById('formEdit').addEventListener('submit', async (e) => {
     };
     if (!payload.konten) return toast('Konten wajib diisi', false);
 
-    const res = await fetch(`${API}/${id}`, {
-        method: 'PUT', headers: HEADERS_JSON, body: JSON.stringify(payload)
+    const res = await fetch(buildUrl(`/${id}`), {
+        method: 'PUT', headers: HEADERS_JSON(), body: JSON.stringify(payload)
     });
     const json = await res.json();
 
@@ -351,12 +565,12 @@ document.getElementById('formEdit').addEventListener('submit', async (e) => {
     }
 });
 
-/* ============ DELETE ============ */
+/* ===== DELETE ===== */
 async function hapusBerita(id) {
     if (!confirm('Yakin hapus berita ini?')) return;
 
-    const res = await fetch(`${API}/${id}`, {
-        method: 'DELETE', headers: HEADERS_JSON
+    const res = await fetch(buildUrl(`/${id}`), {
+        method: 'DELETE', headers: HEADERS_JSON()
     });
     const json = await res.json();
 
@@ -368,7 +582,7 @@ async function hapusBerita(id) {
     }
 }
 
-/* ============ Filter ============ */
+/* ===== Filter ===== */
 let debounce;
 document.getElementById('filterQ').addEventListener('input', () => {
     clearTimeout(debounce);
@@ -385,7 +599,8 @@ document.getElementById('btnResetFilter').addEventListener('click', () => {
 });
 document.getElementById('btnReload').addEventListener('click', loadBerita);
 
-/* ============ Init ============ */
+/* ===== Init ===== */
+applyCfgToForm();
 loadBerita();
 </script>
 </body>
