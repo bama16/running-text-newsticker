@@ -12,7 +12,7 @@ class BulkStoreBeritaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -23,7 +23,9 @@ class BulkStoreBeritaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'teks'     => 'required|string|max:50000',
+            'kategori' => 'nullable|string|max:100',
+            'sumber'   => 'nullable|string|max:100',
         ];
     }
 }
