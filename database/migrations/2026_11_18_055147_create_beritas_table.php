@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('beritas', function (Blueprint $table) {
             $table->id();
+            $table->text('konten');          // isi teks berita
+            $table->string('kategori')->nullable();
+            $table->string('sumber')->nullable();
             $table->timestamps();
         });
     }
